@@ -10,6 +10,7 @@ const nursingNews = require("./nursing-news");  // 新しいモジュールを�
 const analysis = require("./analysis");
 const quiz = require("./quiz");
 const path = require('path');
+const nursingDiary = require("./nursingDiary");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -51,6 +52,9 @@ async function handleEvent(event) {
         case '医療知識クイズ':
             replyMessage = quiz.getQuizMessage(state);
             break;
+        case '看護日記':
+            replyMessage = nursingDiary.getDiaryPrompt();
+            break;
         default:
             if (text.startsWith('miniGame:')) {
                 replyMessage = miniGame.handleMiniGameSelection(text, state);
@@ -58,6 +62,8 @@ async function handleEvent(event) {
                 replyMessage = analysis.handleActivitySelection(text, state);
             } else if (text.startsWith('クイズ回答:')) {
                 replyMessage = quiz.handleQuizAnswer(text, state);
+            } else if (text.startsWith('日記:')) {
+                replyMessage = nursingDiary.handleDiaryEntry(text.substring(3), state);
             } else {
                 replyMessage = getDefaultMessage();
             }
@@ -69,7 +75,7 @@ async function handleEvent(event) {
 function getDefaultMessage() {
     return {
         type: 'text',
-        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・あなたの分析\n・医療知識クイズ'
+        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・あなたの分析\n・医療知識クイズ\n・看護日記'
     };
 }
 
