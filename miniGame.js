@@ -12,9 +12,9 @@ const flowers = [
 ];
 
 const growthStages = [
-    { stage: 1, description: 'タネ', image: '/images/seed.png' },
-    { stage: 3, description: '芽', image: '/images/sprout.png' },
-    { stage: 5, description: '蕾', image: '/images/bud.png' }
+    { stage: 1, description: 'タネ', image: 'https://gyazo.com/752e3507a613444a69b4759d8ea7d4e5.png' },
+    { stage: 3, description: '芽', image: 'https://gyazo.com/83f3ab5bd11875cf7840caa35a60ebfd.png' },
+    { stage: 5, description: '蕾', image: 'https://gyazo.com/61663d52d9701bd9eb0956317afdeefc.png' }
 ];
 
 const taskIcons = {
@@ -88,17 +88,14 @@ function handleMiniGameSelection(data, userState) {
 
     let messages = [{ type: 'text', text: encouragement }];
 
-    // ngrokのURLを環境変数から取得するか、適切なURLに置き換えてください
-    const baseUrl = process.env.NGROK_URL || 'https://your-ngrok-url.ngrok.io';
-
     if (userState.miniGameProgress === 1) {
         userState.currentFlower = flowers[Math.floor(Math.random() * flowers.length)];
         messages.push({ type: 'text', text: 'タネを植えました！大切に育てていきましょう。' });
-        messages.push({ type: 'image', originalContentUrl: `${baseUrl}${growthStages[0].image}`, previewImageUrl: `${baseUrl}${growthStages[0].image}` });
+        messages.push({ type: 'image', originalContentUrl: growthStages[0].image, previewImageUrl: growthStages[0].image });
     } else if (userState.miniGameProgress === 3 || userState.miniGameProgress === 5) {
         const stage = growthStages.find(s => s.stage === userState.miniGameProgress);
         messages.push({ type: 'text', text: `おめでとうございます！${stage.description}が出てきました！` });
-        messages.push({ type: 'image', originalContentUrl: `${baseUrl}${stage.image}`, previewImageUrl: `${baseUrl}${stage.image}` });
+        messages.push({ type: 'image', originalContentUrl: stage.image, previewImageUrl: stage.image });
     } else if (userState.miniGameProgress === 7) {
         const taskCounts = userState.taskHistory.reduce((acc, t) => {
             acc[t] = (acc[t] || 0) + 1;
