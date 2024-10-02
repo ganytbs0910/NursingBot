@@ -7,14 +7,17 @@ const config = require("./config");
 const userState = require("./userState");
 const miniGame = require("./miniGame");
 const nursingNews = require("./nursing-news");
+const medicalNews = require("./medical-news");
 const analysis = require("./analysis");
 const quiz = require("./quiz");
 const path = require('path');
 const nursingDiary = require("./nursingDiary");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use('/images', express.static(path.join(__dirname, 'images')));
+
 app.post("/webhook", line.middleware(config), (req, res) => {
     console.log(req.body.events);
 
@@ -39,34 +42,45 @@ async function handleEvent(event) {
 
     let replyMessage;
 
-    switch (text) {
-        case '育成ミニゲーム':
-            replyMessage = miniGame.getMiniGameMessage();
-            break;
-        case '看護ニュース':  // 「ナース運勢占い」を「看護ニュース」に変更
-            replyMessage = await nursingNews.getNursingNewsMessage(state);  // 非同期関数に変更
-            break;
-        case 'あなたの分析':
-            replyMessage = analysis.getAnalysisMessage();
-            break;
-        case '医療知識クイズ':
-            replyMessage = quiz.getQuizMessage(state);
-            break;
-        case '看護日記':
-            replyMessage = nursingDiary.getDiaryPrompt();
-            break;
-        default:
-            if (text.startsWith('miniGame:')) {
-                replyMessage = miniGame.handleMiniGameSelection(text, state);
-            } else if (text.startsWith('activity:')) {
-                replyMessage = analysis.handleActivitySelection(text, state);
-            } else if (text.startsWith('クイズ回答:')) {
-                replyMessage = quiz.handleQuizAnswer(text, state);
-            } else if (text.startsWith('日記:')) {
-                replyMessage = nursingDiary.handleDiaryEntry(text.substring(3), state);
-            } else {
-                replyMessage = getDefaultMessage();
-            }
+    try {
+        switch (text) {
+            case '育成ミニゲーム':
+                replyMessage = miniGame.getMiniGameMessage();
+                break;
+            case '無料ニュース':
+                replyMessage = await nursingNews.getNursingNewsMessage(state);
+                break;
+            case '有料ニュース':
+                replyMessage = await medicalNews.getMedicalNewsMessage(state);
+                break;
+            case 'あなたの分析':
+                replyMessage = analysis.getAnalysisMessage();
+                break;
+            case '医療知識クイズ':
+                replyMessage = quiz.getQuizMessage(state);
+                break;
+            case '看護日記':
+                replyMessage = nursingDiary.getDiaryPrompt();
+                break;
+            default:
+                if (text.startsWith('miniGame:')) {
+                    replyMessage = miniGame.handleMiniGameSelection(text, state);
+                } else if (text.startsWith('activity:')) {
+                    replyMessage = analysis.handleActivitySelection(text, state);
+                } else if (text.startsWith('クイズ回答:')) {
+                    replyMessage = quiz.handleQuizAnswer(text, state);
+                } else if (text.startsWith('日記:')) {
+                    replyMessage = nursingDiary.handleDiaryEntry(text.substring(3), state);
+                } else {
+                    replyMessage = getDefaultMessage();
+                }
+        }
+    } catch (error) {
+        console.error("Error handling event:", error);
+        replyMessage = {
+            type: 'text',
+            text: '申し訳ありません。エラーが発生しました。もう一度お試しください。'
+        };
     }
 
     return client.replyMessage(event.replyToken, replyMessage);
@@ -75,7 +89,7 @@ async function handleEvent(event) {
 function getDefaultMessage() {
     return {
         type: 'text',
-        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・あなたの分析\n・医療知識クイズ\n・看護日記'
+        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・医療ニュース\n・あなたの分析\n・医療知識クイズ\n・看護日記'
     };
 }
 

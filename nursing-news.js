@@ -42,18 +42,18 @@ function formatNewsMessage(newsItems) {
 
 async function getNursingNewsMessage(userState) {
     const today = new Date().toDateString();
-    if (userState.lastNewsDate !== today) {
+    if (userState.lastNursingNewsDate !== today) {
         try {
             const latestNews = await fetchLatestNews();
             const newsMessage = formatNewsMessage(latestNews);
-            userState.lastNewsDate = today;
+            userState.lastNursingNewsDate = today;
             return { type: 'text', text: newsMessage };
         } catch (error) {
             console.error('Error getting nursing news:', error);
-            return { type: 'text', text: 'すみません、現在ニュースを取得できません。後でもう一度お試しください。' };
+            return { type: 'text', text: 'すみません、現在看護ニュースを取得できません。後でもう一度お試しください。' };
         }
     } else {
-        return { type: 'text', text: '今日のニュースは既に確認しました。明日また最新のニュースをお届けします！' };
+        return { type: 'text', text: '今日の看護ニュースは既に確認しました。明日また最新のニュースをお届けします！' };
     }
 }
 
