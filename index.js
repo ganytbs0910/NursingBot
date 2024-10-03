@@ -12,6 +12,7 @@ const analysis = require("./analysis");
 const quiz = require("./quiz");
 const path = require('path');
 const nursingDiary = require("./nursingDiary");
+const timecapsule = require('./timecapsule');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,17 +61,69 @@ async function handleEvent(event) {
                 replyMessage = quiz.getQuizMessage(state);
                 break;
             case '看護日記':
-                replyMessage = nursingDiary.getDiaryPrompt();
+                replyMessage = nursingDiary.getDiaryOptions();
+                break;
+            case 'diary_write':
+                replyMessage = nursingDiary.writeDiaryPrompt();
+                state.diaryState = { action: 'write' };
+                break;
+            case 'diary_review':
+                replyMessage = nursingDiary.reviewDiaryPrompt();
+                state.diaryState = { action: 'review' };
+                break;
+            case 'diary_stats':
+                replyMessage = await nursingDiary.getDiaryStats(userId);
+                break;
+            case 'タイムカプセル':
+            case 'timecapsule_menu':
+                replyMessage = timecapsule.getTimeCapsuleOptions();
+                break;
+            case 'timecapsule_check':
+                const pendingCapsules = await timecapsule.checkPendingCapsules(userId);
+                if (pendingCapsules.length === 0) {
+                    replyMessage = { type: 'text', text: '現在、埋められているタイムカプセルはありません。' };
+                } else {
+                    replyMessage = { type: 'text', text: '埋められているタイムカプセル:\n' + pendingCapsules.join('\n') };
+                }
+                break;
+            case 'timecapsule_bury':
+                replyMessage = timecapsule.getBuryOptions();
+                break;
+            case 'timecapsule_bury_more':
+                replyMessage = timecapsule.getBuryOptionsMore();
+                break;
+            case 'timecapsule_review':
+                const openCapsules = await timecapsule.getOpenCapsules(userId);
+                if (openCapsules.length === 0) {
+                    replyMessage = { type: 'text', text: '開封可能なタイムカプセルはありません。' };
+                } else {
+                    const messages = openCapsules.map(capsule =>
+                        `${new Date(capsule.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}のメッセージ:\n${capsule.message}`
+                    );
+                    replyMessage = { type: 'text', text: '開封されたタイムカプセル:\n\n' + messages.join('\n\n') };
+                }
                 break;
             default:
-                if (text.startsWith('miniGame:')) {
+                if (state.diaryState && state.diaryState.action === 'write') {
+                    replyMessage = await nursingDiary.handleDiaryEntry(userId, text);
+                    state.diaryState = null;
+                } else if (state.diaryState && state.diaryState.action === 'review') {
+                    replyMessage = await nursingDiary.getDiaryEntry(userId, text);
+                    state.diaryState = null;
+                } else if (text.startsWith('timecapsule_bury_')) {
+                    const duration = text.replace('timecapsule_bury_', '');
+                    state.timecapsuleState = { action: 'bury', duration: duration };
+                    replyMessage = { type: 'text', text: `${duration}に開封するタイムカプセルのメッセージを入力してください。` };
+                } else if (state.timecapsuleState && state.timecapsuleState.action === 'bury') {
+                    const openDate = await timecapsule.createTimeCapsule(userId, text, state.timecapsuleState.duration);
+                    replyMessage = { type: 'text', text: `タイムカプセルが作成されました！ ${openDate.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}に開封されます。` };
+                    state.timecapsuleState = null;
+                } else if (text.startsWith('miniGame:')) {
                     replyMessage = miniGame.handleMiniGameSelection(text, state);
                 } else if (text.startsWith('activity:')) {
                     replyMessage = analysis.handleActivitySelection(text, state);
                 } else if (text.startsWith('クイズ回答:')) {
                     replyMessage = quiz.handleQuizAnswer(text, state);
-                } else if (text.startsWith('日記:')) {
-                    replyMessage = nursingDiary.handleDiaryEntry(text.substring(3), state);
                 } else {
                     replyMessage = getDefaultMessage();
                 }
@@ -79,7 +132,7 @@ async function handleEvent(event) {
         console.error("Error handling event:", error);
         replyMessage = {
             type: 'text',
-            text: '申し訳ありません。エラーが発生しました。もう一度お試しください。'
+            text: `エラーが発生しました: ${error.message}`
         };
     }
 
@@ -89,7 +142,7 @@ async function handleEvent(event) {
 function getDefaultMessage() {
     return {
         type: 'text',
-        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・医療ニュース\n・あなたの分析\n・医療知識クイズ\n・看護日記'
+        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・医療ニュース\n・あなたの分析\n・医療知識クイズ\n・看護日記\n・タイムカプセル'
     };
 }
 
