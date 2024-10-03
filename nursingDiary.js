@@ -62,11 +62,7 @@ async function handleDiaryEntry(userId, entry) {
     const diary = await readUserDiary(userId);
     const today = new Date().toISOString().split('T')[0];
 
-    diary[today] = {
-        content: entry,
-        keywords: extractKeywords(entry),
-        sentiment: analyzeSentiment(entry)
-    };
+    diary[today] = entry;
 
     await writeUserDiary(userId, diary);
 
@@ -119,7 +115,7 @@ async function getDiaryEntry(userId, dateString) {
 
         return {
             type: 'text',
-            text: `${dateString}の日記:\n\n${diary[formattedDate].content}\n\nキーワード: ${diary[formattedDate].keywords.join(', ')}\n感情分析: ${diary[formattedDate].sentiment}`
+            text: `${dateString}の日記:\n\n${diary[formattedDate]}`
         };
     } catch (error) {
         return {
@@ -132,44 +128,11 @@ async function getDiaryEntry(userId, dateString) {
 async function getDiaryStats(userId) {
     const diary = await readUserDiary(userId);
     const entries = Object.keys(diary).length;
-    const keywords = Object.values(diary).flatMap(entry => entry.keywords);
-    const keywordCount = keywords.reduce((acc, keyword) => {
-        acc[keyword] = (acc[keyword] || 0) + 1;
-        return acc;
-    }, {});
-    const topKeywords = Object.entries(keywordCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([keyword, count]) => `${keyword}: ${count}回`);
 
     return {
         type: 'text',
-        text: `日記統計:\n\n総エントリー数: ${entries}\n\nよく使用されるキーワード:\n${topKeywords.join('\n')}`
+        text: `日記統計:\n\n総エントリー数: ${entries}`
     };
-}
-
-function extractKeywords(text) {
-    const commonWords = new Set(['あ', 'い', 'う', 'え', 'お', 'は', 'を', 'の', 'が', 'に', 'と']);
-    return text.split(/\s+/)
-        .filter(word => word.length > 1 && !commonWords.has(word))
-        .slice(0, 5);
-}
-
-function analyzeSentiment(text) {
-    const positiveWords = ['良い', '楽しい', '嬉しい', '成長', '学び'];
-    const negativeWords = ['難しい', '辛い', '悲しい', '失敗', '不安'];
-
-    let score = 0;
-    positiveWords.forEach(word => {
-        if (text.includes(word)) score++;
-    });
-    negativeWords.forEach(word => {
-        if (text.includes(word)) score--;
-    });
-
-    if (score > 0) return 'ポジティブ';
-    if (score < 0) return 'ネガティブ';
-    return 'ニュートラル';
 }
 
 module.exports = {

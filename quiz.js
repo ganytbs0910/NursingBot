@@ -1,57 +1,75 @@
-const quizzes = [
-    { question: '成人の平均体温は何度？', answers: ['35.5度', '36.0度', '36.5度', '37.0度'], correct: 2 },
-    { question: '正常な血圧の上限値は？', answers: ['120/80', '130/85', '140/90', '150/95'], correct: 2 },
-    { question: '人体で最も大きな臓器は？', answers: ['心臓', '肺', '肝臓', '皮膚'], correct: 3 },
-    { question: '赤血球の寿命は約何日？', answers: ['60日', '90日', '120日', '150日'], correct: 2 },
-];
+const fs = require('fs').promises;
+const path = require('path');
+
+let quizzes = [];
+
+async function loadQuizzes() {
+    try {
+        const data = await fs.readFile(path.join(__dirname, 'quizzes.json'), 'utf8');
+        quizzes = JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading quizzes:', error);
+        quizzes = [];
+    }
+}
+
+// アプリケーション起動時にクイズを読み込む
+loadQuizzes();
 
 function getQuizMessage(userState) {
-    if (userState.lastQuizDate && userState.lastQuizDate === new Date().toDateString()) {
-        return { type: 'text', text: '今日のクイズは既に回答済みです。明日また挑戦してください！' };
-    } else {
-        const currentQuiz = quizzes[userState.quizProgress % quizzes.length];
+    if (!userState.quizProgress) {
+        userState.quizProgress = 0;
+    }
+
+    if (userState.quizProgress >= quizzes.length) {
         return {
-            type: 'template',
-            altText: currentQuiz.question,
-            template: {
-                type: 'buttons',
-                text: currentQuiz.question,
-                actions: currentQuiz.answers.map((answer, index) => ({
-                    type: 'postback',
-                    label: answer,
-                    data: `クイズ回答:${index}`
-                }))
-            }
+            type: 'text',
+            text: 'おめでとうございます！全ての問題を解答しました。もう一度挑戦する場合は「クイズをリセット」と入力してください。'
         };
     }
+
+    const currentQuiz = quizzes[userState.quizProgress];
+    return {
+        type: 'template',
+        altText: currentQuiz.question,
+        template: {
+            type: 'buttons',
+            text: `問題${userState.quizProgress + 1}: ${currentQuiz.question}`,
+            actions: currentQuiz.answers.map((answer, index) => ({
+                type: 'postback',
+                label: answer,
+                data: `クイズ回答:${index}`
+            }))
+        }
+    };
 }
 
 function handleQuizAnswer(text, userState) {
     const answerIndex = parseInt(text.split(':')[1]);
-    const currentQuiz = quizzes[userState.quizProgress % quizzes.length];
+    const currentQuiz = quizzes[userState.quizProgress];
     const isCorrect = answerIndex === currentQuiz.correct;
-    const growthAmount = isCorrect ? 10 : 5;
+
+    let replyMessage = isCorrect ? "正解です！" : `不正解です。正解は「${currentQuiz.answers[currentQuiz.correct]}」でした。`;
+    replyMessage += `\n\n解説: ${currentQuiz.explanation}`;
 
     userState.quizProgress++;
-    userState.lastQuizDate = new Date().toDateString();
 
-    const plantHeight = userState.quizProgress * 10;
-    const comparisons = [
-        { height: 10, object: 'ペットボトルのキャップ' },
-        { height: 30, object: 'スマートフォン' },
-        { height: 50, object: 'ノートパソコン' },
-        { height: 100, object: '幼児' },
-        { height: 150, object: '大人の身長' },
-    ];
-    const comparison = comparisons.find(c => plantHeight <= c.height) || comparisons[comparisons.length - 1];
+    if (userState.quizProgress < quizzes.length) {
+        replyMessage += "\n\n次の問題に進むには「次の問題」と入力してください。";
+    } else {
+        replyMessage += "\n\nおめでとうございます！全ての問題を解答しました。もう一度挑戦する場合は「クイズをリセット」と入力してください。";
+    }
 
-    return [
-        { type: 'text', text: isCorrect ? "正解です！素晴らしい！" : `残念、不正解です。正解は「${currentQuiz.answers[currentQuiz.correct]}」でした。` },
-        { type: 'text', text: `植物が${growthAmount}cm成長しました！\n現在の高さ: ${plantHeight}cm (${comparison.object}くらいの高さです)` }
-    ];
+    return { type: 'text', text: replyMessage };
+}
+
+function resetQuiz(userState) {
+    userState.quizProgress = 0;
+    return { type: 'text', text: 'クイズがリセットされました。「医療知識クイズ」と入力して、最初から始めてください。' };
 }
 
 module.exports = {
     getQuizMessage,
-    handleQuizAnswer
+    handleQuizAnswer,
+    resetQuiz
 };

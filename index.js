@@ -19,6 +19,11 @@ const PORT = process.env.PORT || 3000;
 
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
+const client = new line.Client(config);
+
+// タイムカプセルの定期チェックをスケジュール
+timecapsule.scheduleTimeCapsuleChecks(client);
+
 app.post("/webhook", line.middleware(config), (req, res) => {
     console.log(req.body.events);
 
@@ -29,8 +34,6 @@ app.post("/webhook", line.middleware(config), (req, res) => {
             res.status(500).end();
         });
 });
-
-const client = new line.Client(config);
 
 async function handleEvent(event) {
     if (event.type !== "message" && event.type !== "postback") {
@@ -44,6 +47,9 @@ async function handleEvent(event) {
     let replyMessage;
 
     try {
+        // ユーザーアクション時にタイムカプセルをチェック
+        await timecapsule.checkAndNotifyOpenCapsules(client);
+
         switch (text) {
             case '育成ミニゲーム':
                 replyMessage = miniGame.getMiniGameMessage();
@@ -58,6 +64,12 @@ async function handleEvent(event) {
                 replyMessage = analysis.getAnalysisMessage();
                 break;
             case '医療知識クイズ':
+                replyMessage = quiz.getQuizMessage(state);
+                break;
+            case 'クイズをリセット':
+                replyMessage = quiz.resetQuiz(state);
+                break;
+            case '次の問題':
                 replyMessage = quiz.getQuizMessage(state);
                 break;
             case '看護日記':
@@ -118,12 +130,12 @@ async function handleEvent(event) {
                     const openDate = await timecapsule.createTimeCapsule(userId, text, state.timecapsuleState.duration);
                     replyMessage = { type: 'text', text: `タイムカプセルが作成されました！ ${openDate.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}に開封されます。` };
                     state.timecapsuleState = null;
+                } else if (text.startsWith('クイズ回答:')) {
+                    replyMessage = quiz.handleQuizAnswer(text, state);
                 } else if (text.startsWith('miniGame:')) {
                     replyMessage = miniGame.handleMiniGameSelection(text, state);
                 } else if (text.startsWith('activity:')) {
                     replyMessage = analysis.handleActivitySelection(text, state);
-                } else if (text.startsWith('クイズ回答:')) {
-                    replyMessage = quiz.handleQuizAnswer(text, state);
                 } else {
                     replyMessage = getDefaultMessage();
                 }
