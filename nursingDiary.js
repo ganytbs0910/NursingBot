@@ -97,7 +97,7 @@ function parseDateString(dateString) {
 function reviewDiaryPrompt() {
     return {
         type: 'text',
-        text: '振り返りたい日記の日付を入力してください（例: 2023-10-03, 2023/10/03, 03/10/2023）'
+        text: '振り返りたい日記の日付を入力してください（例: 2023/10/03）'
     };
 }
 
