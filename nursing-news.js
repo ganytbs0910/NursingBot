@@ -4,7 +4,6 @@ const Parser = require('rss-parser');
 const parser = new Parser();
 
 const RSS_FEEDS = [
-    'https://www.nurse.or.jp/home/news/feed.xml', // 日本看護協会のRSSフィード
     'https://www.mhlw.go.jp/stf/news.rdf', // 厚生労働省のRSSフィード
 ];
 
