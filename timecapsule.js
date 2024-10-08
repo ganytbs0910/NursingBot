@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-
+const schedule = require('node-schedule');
 const CAPSULE_FILE = path.join(__dirname, 'timecapsules.json');
 
 async function initCapsuleFile() {
@@ -59,8 +59,10 @@ async function getOpenCapsules(userId) {
 
     const openCapsules = userCapsules.filter(capsule => new Date(capsule.openAt) <= now);
 
-    capsules[userId] = userCapsules.filter(capsule => new Date(capsule.openAt) > now);
-    await writeCapsules(capsules);
+    if (openCapsules.length > 0) {
+        capsules[userId] = userCapsules.filter(capsule => new Date(capsule.openAt) > now);
+        await writeCapsules(capsules);
+    }
 
     return openCapsules;
 }
@@ -77,6 +79,44 @@ async function checkPendingCapsules(userId) {
         const timeDiff = openDate - now;
         const days = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
         return `${openDate.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}に開封予定（あと${days}日）`;
+    });
+}
+
+async function checkAndNotifyOpenCapsules(client) {
+    const capsules = await readCapsules();
+    const now = new Date();
+    let updated = false;
+
+    for (const [userId, userCapsules] of Object.entries(capsules)) {
+        const openCapsules = userCapsules.filter(capsule => new Date(capsule.openAt) <= now);
+
+        if (openCapsules.length > 0) {
+            capsules[userId] = userCapsules.filter(capsule => new Date(capsule.openAt) > now);
+            updated = true;
+
+            // ユーザーに通知を送信
+            const message = {
+                type: 'text',
+                text: `${openCapsules.length}個のタイムカプセルが開封可能になりました！「タイムカプセル」→「振り返る」で確認してください。`
+            };
+            try {
+                await client.pushMessage(userId, message);
+            } catch (error) {
+                console.error(`Failed to send notification to user ${userId}:`, error);
+            }
+        }
+    }
+
+    if (updated) {
+        await writeCapsules(capsules);
+    }
+}
+
+function scheduleTimeCapsuleChecks(client) {
+    // 毎日午前0時に実行
+    schedule.scheduleJob('0 0 * * *', async () => {
+        console.log('Running scheduled time capsule check');
+        await checkAndNotifyOpenCapsules(client);
     });
 }
 
@@ -138,5 +178,7 @@ module.exports = {
     getBuryOptionsMore,
     checkPendingCapsules,
     createTimeCapsule,
-    getOpenCapsules
+    getOpenCapsules,
+    checkAndNotifyOpenCapsules,
+    scheduleTimeCapsuleChecks
 };
