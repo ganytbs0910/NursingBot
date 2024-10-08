@@ -7,7 +7,6 @@ const config = require("./config");
 const userState = require("./userState");
 const miniGame = require("./miniGame");
 const nursingNews = require("./nursing-news");
-const analysis = require("./analysis");
 const quiz = require("./quiz");
 const path = require('path');
 const nursingDiary = require("./nursingDiary");
@@ -55,9 +54,6 @@ async function handleEvent(event) {
             case '看護ニュース':
                 replyMessage = await nursingNews.getNursingNewsMessage(state);
                 break;
-            case 'あなたの分析':
-                replyMessage = analysis.getAnalysisMessage();
-                break;
             case '医療知識クイズ':
                 replyMessage = quiz.getQuizMessage(state);
                 break;
@@ -77,9 +73,6 @@ async function handleEvent(event) {
             case 'diary_review':
                 replyMessage = nursingDiary.reviewDiaryPrompt();
                 state.diaryState = { action: 'review' };
-                break;
-            case 'diary_stats':
-                replyMessage = await nursingDiary.getDiaryStats(userId);
                 break;
             case 'タイムカプセル':
             case 'timecapsule_menu':
@@ -149,7 +142,7 @@ async function handleEvent(event) {
 function getDefaultMessage() {
     return {
         type: 'text',
-        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・あなたの分析\n・医療知識クイズ\n・看護日記\n・タイムカプセル'
+        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・医療知識クイズ\n・看護日記\n・タイムカプセル'
     };
 }
 

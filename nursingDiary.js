@@ -44,8 +44,7 @@ function getDiaryOptions() {
             text: '以下から選択してください',
             actions: [
                 { type: 'postback', label: '日記を書く', data: 'diary_write' },
-                { type: 'postback', label: '日記を振り返る', data: 'diary_review' },
-                { type: 'postback', label: '統計を見る', data: 'diary_stats' }
+                { type: 'postback', label: '日記を振り返る', data: 'diary_review' }
             ]
         }
     };
@@ -72,28 +71,6 @@ async function handleDiaryEntry(userId, entry) {
     };
 }
 
-function parseDateString(dateString) {
-    const formats = [
-        /^(\d{4})-(\d{2})-(\d{2})$/,
-        /^(\d{4})\/(\d{2})\/(\d{2})$/,
-        /^(\d{2})\/(\d{2})\/(\d{4})$/
-    ];
-
-    for (let format of formats) {
-        const match = dateString.match(format);
-        if (match) {
-            const [_, yearOrDay, month, dayOrYear] = match;
-            if (yearOrDay.length === 4) {
-                return `${yearOrDay}-${month}-${dayOrYear}`;
-            } else {
-                return `${dayOrYear}-${month}-${yearOrDay}`;
-            }
-        }
-    }
-
-    throw new Error('無効な日付形式です');
-}
-
 function reviewDiaryPrompt() {
     return {
         type: 'text',
@@ -103,7 +80,7 @@ function reviewDiaryPrompt() {
 
 async function getDiaryEntry(userId, dateString) {
     try {
-        const formattedDate = parseDateString(dateString);
+        const formattedDate = dateString.replace(/\//g, '-');
         const diary = await readUserDiary(userId);
 
         if (!diary[formattedDate]) {
@@ -125,21 +102,10 @@ async function getDiaryEntry(userId, dateString) {
     }
 }
 
-async function getDiaryStats(userId) {
-    const diary = await readUserDiary(userId);
-    const entries = Object.keys(diary).length;
-
-    return {
-        type: 'text',
-        text: `日記統計:\n\n総エントリー数: ${entries}`
-    };
-}
-
 module.exports = {
     getDiaryOptions,
     writeDiaryPrompt,
     handleDiaryEntry,
     reviewDiaryPrompt,
-    getDiaryEntry,
-    getDiaryStats
+    getDiaryEntry
 };
