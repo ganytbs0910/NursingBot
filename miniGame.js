@@ -18,34 +18,26 @@ const growthStages = [
 ];
 
 const taskIcons = {
-    '注射': 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E6%B3%A8%E5%B0%84%E5%99%A8%E3%81%AE%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%B3%E7%B4%A0%E6%9D%90-gtnEQkgm1pbXpAFq1TvVg307JdVWF9.png',
-    '清掃': 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E3%83%8F%E3%82%99%E3%82%B1%E3%83%84%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%B32-tDGfqL7l902vSg7mgeiwpFXWyyztFr.png',
-    '勉強': 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E3%81%97%E3%81%8A%E3%82%8A%E4%BB%98%E3%81%8D%E3%81%AE%E6%9C%AC%E3%81%AE%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%B3%E7%B4%A0%E6%9D%90-9U1gAJepNO0wqmMuXcFnczZhdWCFCC.png',
-    '患者ケア': 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E8%81%B4%E8%A8%BA%E5%99%A8%E3%81%AE%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%B3%E7%B4%A0%E6%9D%90-YyePJ7dhJqRnXy03BPNYcOx6m4KDhZ.png',
+    '注射': '💉',
+    '清掃': '🧹',
+    '勉強': '📚',
+    '患者ケア': '🩺'
 };
 
 const encouragements = {
     '注射': [
         'お疲れ様です。丁寧な注射は患者さんの安心につながります。',
-        '正確な投薬は治療の要です。素晴らしい仕事ぶりです。',
-        '患者さんの痛みを最小限に抑える技術に感謝します。',
         '確実な手技で患者さんの信頼を得ていますね。',
     ],
     '清掃': [
-        'きれいな環境は患者さんの回復を助けます。素晴らしい仕事です！',
-        '衛生管理は感染予防の基本。あなたの努力が病院を守っています。',
         '清潔な環境づくりに尽力してくれてありがとうございます。',
         'あなたの丁寧な清掃が、患者さんに安心を与えています。',
     ],
     '勉強': [
         '新しい知識は患者さんのケアに直結します。頑張りましたね！',
-        '継続的な学習姿勢に感心します。チーム全体の力になっています。',
         '最新の医療知識を身につける努力は素晴らしいです。',
-        'あなたの学ぶ姿勢が、より良い医療サービスにつながっています。',
     ],
     '患者ケア': [
-        '患者さんへの思いやりが伝わっています。素晴らしい看護です。',
-        'きめ細やかな対応に感謝します。患者さんの安心につながっています。',
         '患者さんの気持ちに寄り添う姿勢が素晴らしいです。',
         'あなたの優しさが、患者さんの回復を後押ししています。',
     ],
@@ -56,18 +48,13 @@ function getMiniGameMessage() {
         type: 'template',
         altText: '今日頑張ったことを選んでください',
         template: {
-            type: 'carousel',
-            columns: Object.entries(taskIcons).map(([task, iconUrl]) => ({
-                thumbnailImageUrl: iconUrl,
-                title: task,
-                text: '今日頑張ったこと',
-                actions: [
-                    {
-                        type: 'postback',
-                        label: '選択',
-                        data: `miniGame:${task}`
-                    }
-                ]
+            type: 'buttons',
+            title: '今日頑張ったこと',
+            text: 'どの作業を頑張りましたか？',
+            actions: Object.entries(taskIcons).map(([task, emoji]) => ({
+                type: 'postback',
+                label: `${emoji} ${task}`,
+                data: `miniGame:${task}`
             }))
         }
     };
@@ -102,7 +89,7 @@ function handleMiniGameSelection(data, userState) {
             return acc;
         }, {});
         const summary = Object.entries(taskCounts)
-            .map(([t, count]) => `${t}：${count}回`)
+            .map(([t, count]) => `${taskIcons[t]} ${t}：${count}回`)
             .join('、');
 
         messages.push({ type: 'text', text: `おめでとうございます！${userState.currentFlower.name}が咲きました！` });
@@ -115,7 +102,7 @@ function handleMiniGameSelection(data, userState) {
         userState.currentFlower = null;
     }
 
-    messages.push({ type: 'text', text: `進捗: ${userState.miniGameProgress}/7` });
+    messages.push({ type: 'text', text: `進捗: ${'🌱'.repeat(userState.miniGameProgress)}${'⚪'.repeat(7 - userState.miniGameProgress)} (${userState.miniGameProgress}/7)` });
 
     return messages;
 }
