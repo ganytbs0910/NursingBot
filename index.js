@@ -11,6 +11,7 @@ const quiz = require("./quiz");
 const path = require('path');
 const nursingDiary = require("./nursingDiary");
 const timecapsule = require('./timecapsule');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -67,8 +68,8 @@ async function handleEvent(event) {
                 replyMessage = nursingDiary.getDiaryOptions();
                 break;
             case 'diary_write':
-                replyMessage = nursingDiary.writeDiaryPrompt();
-                state.diaryState = { action: 'write' };
+                replyMessage = nursingDiary.getTaskSelection();
+                state.diaryState = { action: 'selecting_task' };
                 break;
             case 'diary_review':
                 replyMessage = nursingDiary.reviewDiaryPrompt();
@@ -104,8 +105,21 @@ async function handleEvent(event) {
                 }
                 break;
             default:
-                if (state.diaryState && state.diaryState.action === 'write') {
-                    replyMessage = await nursingDiary.handleDiaryEntry(userId, text);
+                if (text.startsWith('diary_task_')) {
+                    const selectedTask = text.replace('diary_task_', '');
+                    state.diaryState = {
+                        action: 'write',
+                        selectedTask: selectedTask
+                    };
+                    replyMessage = nursingDiary.writeDiaryPrompt(selectedTask);
+                } else if (state.diaryState && state.diaryState.action === 'write') {
+                    const messages = await nursingDiary.handleDiaryEntry(userId, text, state);
+                    if (Array.isArray(messages)) {
+                        await client.replyMessage(event.replyToken, messages);
+                        return;
+                    } else {
+                        replyMessage = messages;
+                    }
                     state.diaryState = null;
                 } else if (state.diaryState && state.diaryState.action === 'review') {
                     replyMessage = await nursingDiary.getDiaryEntry(userId, text);
@@ -136,7 +150,9 @@ async function handleEvent(event) {
         };
     }
 
-    return client.replyMessage(event.replyToken, replyMessage);
+    if (replyMessage) {
+        return client.replyMessage(event.replyToken, replyMessage);
+    }
 }
 
 function getDefaultMessage() {

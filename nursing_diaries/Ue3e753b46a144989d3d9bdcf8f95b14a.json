@@ -1,5 +1,20 @@
 {
   "2024-10-03": "つらい",
   "2024-10-08": "あ",
-  "2024-10-15": "あ"
+  "2024-10-15": "あ",
+  "2024-10-25": "かなり辛かったよ",
+  "entries": {
+    "2024-10-25": {
+      "content": "た"
+    }
+  },
+  "flowerProgress": {
+    "entryCount": 1,
+    "currentFlower": {
+      "name": "アジサイ",
+      "meaning": "辛抱強さ",
+      "image": "https://example.com/hydrangea.jpg"
+    },
+    "currentStage": 1
+  }
 }
