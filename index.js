@@ -5,7 +5,6 @@ const line = require("@line/bot-sdk");
 const ngrok = require("ngrok");
 const config = require("./config");
 const userState = require("./userState");
-const miniGame = require("./miniGame");
 const nursingNews = require("./nursing-news");
 const quiz = require("./quiz");
 const path = require('path');
@@ -49,9 +48,6 @@ async function handleEvent(event) {
         await timecapsule.checkAndNotifyOpenCapsules(client);
 
         switch (text) {
-            case '育成ミニゲーム':
-                replyMessage = miniGame.getMiniGameMessage();
-                break;
             case '看護ニュース':
                 replyMessage = await nursingNews.getNursingNewsMessage(state);
                 break;
@@ -134,10 +130,6 @@ async function handleEvent(event) {
                     state.timecapsuleState = null;
                 } else if (text.startsWith('クイズ回答:')) {
                     replyMessage = quiz.handleQuizAnswer(text, state);
-                } else if (text.startsWith('miniGame:')) {
-                    replyMessage = miniGame.handleMiniGameSelection(text, state);
-                } else if (text.startsWith('activity:')) {
-                    replyMessage = analysis.handleActivitySelection(text, state);
                 } else {
                     replyMessage = getDefaultMessage();
                 }
@@ -158,7 +150,7 @@ async function handleEvent(event) {
 function getDefaultMessage() {
     return {
         type: 'text',
-        text: '以下のいずれかの機能を選んでください：\n・育成ミニゲーム\n・看護ニュース\n・医療知識クイズ\n・看護日記\n・タイムカプセル'
+        text: '以下のいずれかの機能を選んでください：\n・看護ニュース\n・医療知識クイズ\n・看護日記\n・タイムカプセル'
     };
 }
 

@@ -1,19 +1,16 @@
 {
-  "2024-10-03": "つらい",
-  "2024-10-08": "あ",
-  "2024-10-15": "あ",
-  "2024-10-25": "かなり辛かったよ",
   "entries": {
     "2024-10-25": {
-      "content": "た"
+      "task": "注射",
+      "content": "はたらたまらはま"
     }
   },
   "flowerProgress": {
-    "entryCount": 1,
+    "entryCount": 2,
     "currentFlower": {
-      "name": "アジサイ",
-      "meaning": "辛抱強さ",
-      "image": "https://example.com/hydrangea.jpg"
+      "name": "サクラ",
+      "meaning": "優美な女性",
+      "image": "https://example.com/cherry_blossom.jpg"
     },
     "currentStage": 1
   }

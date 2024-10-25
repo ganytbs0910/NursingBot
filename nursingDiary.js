@@ -32,7 +32,7 @@ const growthStages = [
 async function initDiaryDir() {
     try {
         await fs.access(DIARY_DIR);
-    } catch (error) {
+    } catch {
         await fs.mkdir(DIARY_DIR);
     }
 }
@@ -47,18 +47,15 @@ async function readUserDiary(userId) {
     try {
         const data = await fs.readFile(filePath, 'utf8');
         return JSON.parse(data);
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            return {
-                entries: {},
-                flowerProgress: {
-                    entryCount: 0,
-                    currentFlower: null,
-                    currentStage: 0
-                }
-            };
-        }
-        throw error;
+    } catch {
+        return {
+            entries: {},
+            flowerProgress: {
+                entryCount: 0,
+                currentFlower: null,
+                currentStage: 0
+            }
+        };
     }
 }
 
@@ -69,24 +66,84 @@ async function writeUserDiary(userId, diary) {
 
 function getDiaryOptions() {
     return {
-        type: 'template',
+        type: 'flex',
         altText: '看護日記メニュー',
-        template: {
-            type: 'buttons',
-            title: '看護日記',
-            text: '以下から選択してください',
-            actions: [
-                {
-                    type: 'postback',
-                    label: '日記を書く',
-                    data: 'diary_write'
-                },
-                {
-                    type: 'postback',
-                    label: '日記を振り返る',
-                    data: 'diary_review'
-                }
-            ]
+        contents: {
+            type: 'bubble',
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                contents: [
+                    {
+                        type: 'text',
+                        text: '看護日記',
+                        weight: 'bold',
+                        size: 'xl'
+                    },
+                    {
+                        type: 'box',
+                        layout: 'horizontal',
+                        spacing: 'md',
+                        contents: [
+                            {
+                                type: 'box',
+                                layout: 'vertical',
+                                flex: 1,
+                                backgroundColor: '#ECF4FF',
+                                cornerRadius: '20px',
+                                paddingAll: 'md',
+                                action: {
+                                    type: 'postback',
+                                    label: '日記を書く',
+                                    data: 'diary_write'
+                                },
+                                contents: [
+                                    {
+                                        type: 'text',
+                                        text: '✍️',
+                                        size: 'xxl',
+                                        align: 'center'
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: '日記を書く',
+                                        align: 'center',
+                                        margin: 'sm'
+                                    }
+                                ]
+                            },
+                            {
+                                type: 'box',
+                                layout: 'vertical',
+                                flex: 1,
+                                backgroundColor: '#FFECEC',
+                                cornerRadius: '20px',
+                                paddingAll: 'md',
+                                action: {
+                                    type: 'postback',
+                                    label: '振り返る',
+                                    data: 'diary_review'
+                                },
+                                contents: [
+                                    {
+                                        type: 'text',
+                                        text: '📖',
+                                        size: 'xxl',
+                                        align: 'center'
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: '振り返る',
+                                        align: 'center',
+                                        margin: 'sm'
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     };
 }
@@ -159,6 +216,60 @@ function writeDiaryPrompt(task) {
     };
 }
 
+async function handleDiaryEntry(userId, entry, state) {
+    const diary = await readUserDiary(userId);
+    const today = new Date().toISOString().split('T')[0];
+
+    diary.entries[today] = {
+        task: state.diaryState.selectedTask,
+        content: entry
+    };
+
+    if (!diary.flowerProgress) {
+        diary.flowerProgress = {
+            entryCount: 0,
+            currentFlower: flowers[Math.floor(Math.random() * flowers.length)],
+            currentStage: 0
+        };
+    }
+
+    diary.flowerProgress.entryCount++;
+
+    if (diary.flowerProgress.entryCount === 1) {
+        diary.flowerProgress.currentStage = 1;
+    } else if (diary.flowerProgress.entryCount === 3) {
+        diary.flowerProgress.currentStage = 3;
+    } else if (diary.flowerProgress.entryCount === 5) {
+        diary.flowerProgress.currentStage = 5;
+    } else if (diary.flowerProgress.entryCount === 7) {
+        diary.flowerProgress.currentStage = 7;
+    }
+
+    await writeUserDiary(userId, diary);
+
+    const growthMessage = getFlowerGrowthMessage(diary.flowerProgress);
+
+    if (diary.flowerProgress.entryCount === 7) {
+        diary.flowerProgress = {
+            entryCount: 0,
+            currentFlower: flowers[Math.floor(Math.random() * flowers.length)],
+            currentStage: 0
+        };
+        await writeUserDiary(userId, diary);
+    }
+
+    const messages = [{
+        type: 'text',
+        text: '日記が記録されました。貴重な経験を書き留めていただき、ありがとうございます。'
+    }];
+
+    if (growthMessage) {
+        messages.push(growthMessage);
+    }
+
+    return messages;
+}
+
 function getFlowerGrowthMessage(flowerProgress) {
     const { entryCount, currentFlower, currentStage } = flowerProgress;
 
@@ -229,93 +340,25 @@ function getFlowerGrowthMessage(flowerProgress) {
     return null;
 }
 
-async function handleDiaryEntry(userId, entry, state) {
-    const diary = await readUserDiary(userId);
-    const today = new Date().toISOString().split('T')[0];
-
-    if (!diary.entries) diary.entries = {};
-    diary.entries[today] = {
-        task: state.selectedTask,
-        content: entry
-    };
-
-    if (!diary.flowerProgress) {
-        diary.flowerProgress = {
-            entryCount: 0,
-            currentFlower: flowers[Math.floor(Math.random() * flowers.length)],
-            currentStage: 0
-        };
-    }
-
-    diary.flowerProgress.entryCount++;
-
-    if (diary.flowerProgress.entryCount === 1) {
-        diary.flowerProgress.currentStage = 1;
-    } else if (diary.flowerProgress.entryCount === 3) {
-        diary.flowerProgress.currentStage = 3;
-    } else if (diary.flowerProgress.entryCount === 5) {
-        diary.flowerProgress.currentStage = 5;
-    } else if (diary.flowerProgress.entryCount === 7) {
-        diary.flowerProgress.currentStage = 7;
-    }
-
-    await writeUserDiary(userId, diary);
-
-    const growthMessage = getFlowerGrowthMessage(diary.flowerProgress);
-
-    if (diary.flowerProgress.entryCount === 7) {
-        diary.flowerProgress = {
-            entryCount: 0,
-            currentFlower: flowers[Math.floor(Math.random() * flowers.length)],
-            currentStage: 0
-        };
-        await writeUserDiary(userId, diary);
-    }
-
-    const messages = [
-        {
-            type: 'text',
-            text: '日記が記録されました。貴重な経験を書き留めていただき、ありがとうございます。'
-        }
-    ];
-
-    if (growthMessage) {
-        messages.push(growthMessage);
-    }
-
-    return messages;
-}
-
 function reviewDiaryPrompt() {
     return {
         type: 'text',
-        text: '振り返りたい日記の日付を入力してください（例: 2023/10/03）'
+        text: '振り返りたい日記の日付を入力してください（例: 2024/10/25）\n\n※ yyyy/mm/dd の形式で入力してください'
     };
 }
 
-async function getDiaryEntry(userId, dateString) {
-    try {
-        const formattedDate = dateString.replace(/\//g, '-');
-        const diary = await readUserDiary(userId);
-
-        if (!diary.entries || !diary.entries[formattedDate]) {
-            return {
-                type: 'text',
-                text: `${dateString}の日記は見つかりませんでした。`
-            };
-        }
-
+function getDiaryEntry(userId, dateString) {
+    const formattedDate = dateString.replace(/\//g, '-');
+    return readUserDiary(userId).then(diary => {
         const entry = diary.entries[formattedDate];
-        return {
+        return entry ? {
             type: 'text',
             text: `${dateString}の日記:\n\n${taskIcons[entry.task]} タスク: ${entry.task}\n\n${entry.content}`
-        };
-    } catch (error) {
-        return {
+        } : {
             type: 'text',
-            text: `エラー: ${error.message}`
+            text: `${dateString}の日記は見つかりませんでした。`
         };
-    }
+    });
 }
 
 module.exports = {
